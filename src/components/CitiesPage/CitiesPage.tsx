@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 // import './CitiesPage.css';
 
+const apiUrlCities = process.env.REACT_APP_API_URL_CITIES
 // Интерфейс для списка городов
 interface CityResponse {
   error: boolean;
@@ -27,7 +28,7 @@ const CitiesPage: React.FC = () => {
         }
 
         const response = await axios.post<CityResponse>(
-          "http://85.92.111.100/testbase/hs/parcelcloud/cities/get",
+          `${apiUrlCities}`,
           {
             authToken: {
               authToken: token,

@@ -1,0 +1,6 @@
+.layoutStyle {
+    border-radius: 8;
+    overflow: 'hidden';
+    width: 'calc(50% - 8px)';
+    max-width: 'calc(50% - 8px)';
+}

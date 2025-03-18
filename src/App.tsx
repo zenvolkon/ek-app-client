@@ -4,6 +4,9 @@ import LoginPage from './components/LoginPage/LoginPage';
 import CitiesPage from './components/CitiesPage/CitiesPage';
 import MainPage from "./components/MainPage/MainPage";
 import Parcels from "./components/Parcels/Parcels";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 const App: React.FC = () => {
   return (
