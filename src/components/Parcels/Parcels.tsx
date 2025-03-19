@@ -1,125 +1,51 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { useMutation } from '@tanstack/react-query';
 
-// Интерфейс для данных о накладных
-interface Invoice {
-  number: string;
-  customer: string;
-  sendCity: string;
-  recCity: string;
-  sendAddress: string;
-  recAddress: string;
-  qt: number;
-  weight: number;
-  volume: number;
-  price: number;
-  sendCompany: string;
-  recCompany: string;
-  date: string;
-  statusType: string;
-  statusValue: string;
-  statusDate: string;
-  id: string;
-}
+const MyComponent = () => {
+    const url = 'http://85.92.111.100/testbase/hs/parcelcloud/parcels/get';
+    const data = {
+        authToken: {
+            userKey: '000000006',
+            token: '65c366b209cddb0d84f0642ebb22e546'
+        },
+        filters: {
+            recCities: null,
+            sendCities: null,
+            number: null
+        }
+    };
 
-// Интерфейс для ответа от сервера
-interface ApiResponse {
-  error: boolean;
-  responceData: Invoice[];
-}
+    const mutation = useMutation({
+        mutationFn: () =>
+            axios.post(url, data, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }),
+    });
 
-// Функция для получения данных о накладных
-const fetchInvoices = async (): Promise<ApiResponse> => {
-  const userKey = localStorage.getItem('userKey'); // Получаем userKey из локального кэша
-  const token = localStorage.getItem('token'); // Получаем token из локального кэша
+    const handleSubmit = () => {
+        mutation.mutate();
+    };
 
-  if (!userKey || !token) {
-    throw new Error('UserKey or Token not found in local storage');
-  }
+    return (
+        <div>
+            <h1>Накладные</h1>
+            <button onClick={handleSubmit} disabled={mutation.isPending}>
+                {mutation.isPending ? 'Ожидаем...' : 'Запросить накладные'}
+            </button>
 
-  const response = await axios.post<ApiResponse>(
-    'http://85.92.111.100/testbase/hs/parcelcloud/parcels/get',
-    {
-      authToken: {
-        userKey,
-        token,
-      },
-      filters: {
-        recCities: null,
-        sendCities: null,
-        number: null,
-      },
-    }
-  );
+            {mutation.isError && <div>Error: {mutation.error.message}</div>}
 
-  return response.data;
+            {mutation.isSuccess && (
+                <div>
+                    <h2>Список накладных:</h2>
+                    <pre>{JSON.stringify(mutation.data.data, null, 2)}</pre>
+                </div>
+            )}
+        </div>
+    );
 };
 
-const Parcels: React.FC = () => {
-  // Используем объект конфигурации для useQuery
-  const { data, error, isLoading } = useQuery<ApiResponse, Error>({
-    queryKey: ['invoices'], // Ключ запроса
-    queryFn: fetchInvoices, // Функция для выполнения запроса
-  });
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  }
-
-  return (
-    <div>
-      <h1>Накладные</h1>
-      <table>
-        <thead>
-          <tr>
-            <th>Номер</th>
-            <th>Клиент</th>
-            <th>Город отправления</th>
-            <th>Город получения</th>
-            <th>Адрес отправления</th>
-            <th>Адрес получения</th>
-            <th>Количество</th>
-            <th>Вес</th>
-            <th>Объем</th>
-            <th>Цена</th>
-            <th>Компания отправления</th>
-            <th>Компания получения</th>
-            <th>Дата</th>
-            <th>Тип статуса</th>
-            <th>Значение статуса</th>
-            <th>Дата статуса</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.responceData.map((invoice) => (
-            <tr key={invoice.id}>
-              <td>{invoice.number}</td>
-              <td>{invoice.customer}</td>
-              <td>{invoice.sendCity}</td>
-              <td>{invoice.recCity}</td>
-              <td>{invoice.sendAddress}</td>
-              <td>{invoice.recAddress}</td>
-              <td>{invoice.qt}</td>
-              <td>{invoice.weight}</td>
-              <td>{invoice.volume}</td>
-              <td>{invoice.price}</td>
-              <td>{invoice.sendCompany}</td>
-              <td>{invoice.recCompany}</td>
-              <td>{invoice.date}</td>
-              <td>{invoice.statusType}</td>
-              <td>{invoice.statusValue}</td>
-              <td>{invoice.statusDate}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
-export default Parcels;
+export default MyComponent;

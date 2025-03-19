@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-// import './CitiesPage.css';
+import { useQuery } from "@tanstack/react-query";
 
-const apiUrlCities = process.env.REACT_APP_API_URL_CITIES
+const apiUrlCities = process.env.REACT_APP_API_URL_CITIES;
+
 // Интерфейс для списка городов
 interface CityResponse {
   error: boolean;
@@ -11,62 +12,67 @@ interface CityResponse {
 }
 
 const CitiesPage: React.FC = () => {
-  const [cities, setCities] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const userKey = localStorage.getItem("userKey");
+  // Функция для выполнения POST-запроса
+  const fetchCities = async () => {
+    const token = localStorage.getItem("token");
+    const userKey = localStorage.getItem("userKey");
 
-        if (!token || !userKey) {
-          setError("Ошибка аутентификации. Пожалуйста, войдите снова.");
-          navigate("/");
-          return;
-        }
+    if (!token || !userKey) {
+      throw new Error("Ошибка аутентификации. Пожалуйста, войдите снова.");
+    }
 
-        const response = await axios.post<CityResponse>(
-          `${apiUrlCities}`,
-          {
-            authToken: {
-              authToken: token,
-              parcelId: userKey,
-            },
-          },
-          {
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-
-        console.log("Ответ API:", response.data);
-
-        if (response.data.error) {
-          setError("Ошибка на сервере.");
-          return;
-        }
-
-        if (!Array.isArray(response.data.responceData)) {
-          setError("Ошибка данных: список городов должен быть массивом.");
-          return;
-        }
-
-        setCities(response.data.responceData);
-      } catch (err) {
-        setError("Не удалось загрузить список городов.");
+    const response = await axios.post<CityResponse>(
+      `${apiUrlCities}`,
+      {
+        authToken: {
+          authToken: token,
+          parcelId: userKey,
+        },
+      },
+      {
+        headers: { "Content-Type": "application/json" },
       }
-    };
+    );
 
-    fetchCities();
-  }, [navigate]);
+    if (response.data.error) {
+      throw new Error("Ошибка на сервере.");
+    }
+
+    if (!Array.isArray(response.data.responceData)) {
+      throw new Error("Ошибка данных: список городов должен быть массивом.");
+    }
+
+    return response.data.responceData;
+  };
+
+  // Используем useQuery для выполнения запроса
+  const {
+    data: cities,
+    error,
+    isLoading,
+    isError,
+  } = useQuery<string[], Error>({
+    queryKey: ["cities"], // Уникальный ключ для запроса
+    queryFn: fetchCities, // Функция для выполнения запроса
+    retry: false, // Отключаем повторные попытки при ошибке
+  });
+
+  // Обработка ошибок с помощью useEffect
+  useEffect(() => {
+    if (isError && error?.message === "Ошибка аутентификации. Пожалуйста, войните снова.") {
+      navigate("/"); // Перенаправляем на страницу входа
+    }
+  }, [isError, error, navigate]);
 
   return (
     <div>
       <h2>Список городов</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {isError && <p style={{ color: "red" }}>{error.message}</p>}
+      {isLoading && <p>Загрузка...</p>}
       <ul>
-        {cities.map((city, index) => (
+        {cities?.map((city: string, index: number) => (
           <li key={index}>{city}</li>
         ))}
       </ul>
